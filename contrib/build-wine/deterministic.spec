@@ -114,11 +114,11 @@ exe_standalone = EXE(
     a.scripts,
     a.binaries,
     a.datas,
-    name=os.path.join('build\\pyi.win32\\electrum', cmdline_name + ".exe"),
+    name=os.path.join('build\\pyi.win32\\electrumg', cmdline_name + ".exe"),
     debug=False,
     strip=None,
     upx=False,
-    icon=home+'electrum/gui/icons/electrum.ico',
+    icon=home+'electrum/gui/icons/electrumg.ico',
     console=False)
     # console=True makes an annoying black box pop up, but it does make Electrum output command line commands, with this turned off no output will be given but commands can still be used
 
@@ -127,11 +127,11 @@ exe_portable = EXE(
     a.scripts,
     a.binaries,
     a.datas + [('is_portable', 'README.md', 'DATA')],
-    name=os.path.join('build\\pyi.win32\\electrum', cmdline_name + "-portable.exe"),
+    name=os.path.join('build\\pyi.win32\\electrumg', cmdline_name + "-portable.exe"),
     debug=False,
     strip=None,
     upx=False,
-    icon=home+'electrum/gui/icons/electrum.ico',
+    icon=home+'electrum/gui/icons/electrumg.ico',
     console=False)
 
 #####
@@ -145,7 +145,7 @@ exe_inside_setup_noconsole = EXE(
     debug=False,
     strip=None,
     upx=False,
-    icon=home+'electrum/gui/icons/electrum.ico',
+    icon=home+'electrum/gui/icons/electrumg.ico',
     console=False)
 
 exe_inside_setup_console = EXE(
@@ -156,7 +156,7 @@ exe_inside_setup_console = EXE(
     debug=False,
     strip=None,
     upx=False,
-    icon=home+'electrum/gui/icons/electrum.ico',
+    icon=home+'electrum/gui/icons/electrumg.ico',
     console=True)
 
 coll = COLLECT(
@@ -168,6 +168,6 @@ coll = COLLECT(
     strip=None,
     upx=True,
     debug=False,
-    icon=home+'electrum/gui/icons/electrum.ico',
+    icon=home+'electrum/gui/icons/electrumg.ico',
     console=False,
     name=os.path.join('dist', 'electrum'))

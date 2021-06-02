@@ -1851,12 +1851,16 @@ class PartialTransaction(Transaction):
         inputs = self.inputs()
         outputs = self.outputs()
         txin = inputs[txin_index]
-        sighash = txin.sighash if txin.sighash is not None else SIGHASH_ALL
-        if sighash != SIGHASH_ALL:
+        sighash = txin.sighash if txin.sighash is not None else SIGHASH_ALL | constants.net.SIGHASH_FORK_BTG
+        if sighash != SIGHASH_ALL | constants.net.SIGHASH_FORK_BTG:
             raise Exception("only SIGHASH_ALL signing is supported!")
         nHashType = int_to_hex(sighash, 4)
         preimage_script = self.get_preimage_script(txin)
-        if txin.is_segwit():
+
+        def is_bip143_input(txin) -> bool:
+            return True
+
+        if is_bip143_input(txin):
             if bip143_shared_txdigest_fields is None:
                 bip143_shared_txdigest_fields = self._calc_bip143_shared_txdigest_fields()
             hashPrevouts = bip143_shared_txdigest_fields.hashPrevouts
@@ -1899,7 +1903,7 @@ class PartialTransaction(Transaction):
                                                        bip143_shared_txdigest_fields=bip143_shared_txdigest_fields)))
         privkey = ecc.ECPrivkey(privkey_bytes)
         sig = privkey.sign_transaction(pre_hash)
-        sig = bh2u(sig) + '01'  # SIGHASH_ALL
+        sig = bh2u(sig) + '41'  # SIGHASH_ALL ｜ SIGHASH_FORK_BTG
         return sig
 
     def is_complete(self) -> bool:

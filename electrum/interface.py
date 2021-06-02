@@ -591,35 +591,21 @@ class Interface(Logger):
         return blockchain.deserialize_header(bytes.fromhex(res), height)
 
     async def request_chunk(self, height: int, tip=None, *, can_return_early=False):
-        if not is_non_negative_integer(height):
-            raise Exception(f"{repr(height)} is not a block height")
-        index = height // 2016
+        # the concept of index here is different with legacy electrum
+        index = (height - constants.net.max_checkpoint()) // constants.net.CHUNK_SIZE
         if can_return_early and index in self._requested_chunks:
             return
-        self.logger.info(f"requesting chunk from height {height}")
-        size = 2016
+        size = constants.net.CHUNK_SIZE
         if tip is not None:
-            size = min(size, tip - index * 2016 + 1)
+            size = min(size, tip - (constants.net.max_checkpoint() + index * constants.net.CHUNK_SIZE) + 1)
             size = max(size, 0)
         try:
+            self.logger.info(f"requesting chunk from height {height} to height {height + size - 1}")
             self._requested_chunks.add(index)
-            res = await self.session.send_request('blockchain.block.headers', [index * 2016, size])
+            res = await self.session.send_request('blockchain.block.headers', [height, size])
         finally:
             self._requested_chunks.discard(index)
-        assert_dict_contains_field(res, field_name='count')
-        assert_dict_contains_field(res, field_name='hex')
-        assert_dict_contains_field(res, field_name='max')
-        assert_non_negative_integer(res['count'])
-        assert_non_negative_integer(res['max'])
-        assert_hex_str(res['hex'])
-        if len(res['hex']) != HEADER_SIZE * 2 * res['count']:
-            raise RequestCorrupted('inconsistent chunk hex and count')
-        # we never request more than 2016 headers, but we enforce those fit in a single response
-        if res['max'] < 2016:
-            raise RequestCorrupted(f"server uses too low 'max' count for block.headers: {res['max']} < 2016")
-        if res['count'] != size:
-            raise RequestCorrupted(f"expected {size} headers but only got {res['count']}")
-        conn = self.blockchain.connect_chunk(index, res['hex'])
+        conn = self.blockchain.connect_chunk(height, res['hex'])
         if not conn:
             return conn, 0
         return conn, res['count']
@@ -702,6 +688,9 @@ class Interface(Logger):
         # monitor_connection will cancel tasks
 
     async def run_fetch_blocks(self):
+
+        self.logger.info(f"start to subscribe latest block from server...")
+
         header_queue = asyncio.Queue()
         await self.session.subscribe('blockchain.headers.subscribe', [], header_queue)
         while True:
@@ -709,11 +698,21 @@ class Interface(Logger):
             raw_header = item[0]
             height = raw_header['height']
             header = blockchain.deserialize_header(bfh(raw_header['hex']), height)
+            self.logger.info(f"blockchain.headers.subscribe return new block at {height}")
             self.tip_header = header
             self.tip = height
             if self.tip < constants.net.max_checkpoint():
                 raise GracefulDisconnect('server tip below max checkpoint')
             self._mark_ready()
+            
+            # before preocess blocks after max checkpoint, we need to fetch number of 
+            # constants.net.LWMA_AVERAGING_WINDOW blocks before max checkpoints to make 
+            # target check success
+            for i in range(constants.net.max_checkpoint() - constants.net.LWMA_AVERAGING_WINDOW, constants.net.max_checkpoint()):
+                if not self.blockchain.header_exist(i):
+                    header = await self.get_block_header(i, 'backward')
+                    self.blockchain.save_header_without_update(header)
+
             await self._process_header_at_tip()
             # header processing done
             util.trigger_callback('blockchain_updated')
@@ -728,14 +727,18 @@ class Interface(Logger):
                 # another interface amended the blockchain
                 self.logger.info(f"skipping header {height}")
                 return
-            _, height = await self.step(height, header)
-            # in the simple case, height == self.tip+1
-            if height <= self.tip:
-                await self.sync_until(height)
+            
+            # sync blocks after max checkpoint
+            await self.sync_until(self.blockchain.height() + 1)
+
+        util.trigger_callback('blockchain_updated')
 
     async def sync_until(self, height, next_height=None):
         if next_height is None:
             next_height = self.tip
+        
+        self.logger.info(f"start to sync blocks from height {height} to height {next_height}")
+
         last = None
         while last is None or height <= next_height:
             prev_last, prev_height = last, height
@@ -747,7 +750,7 @@ class Interface(Logger):
                     last, height = await self.step(height)
                     continue
                 util.trigger_callback('network_updated')
-                height = (height // 2016 * 2016) + num_headers
+                height = height + num_headers
                 assert height <= next_height+1, (height, self.tip)
                 last = 'catchup'
             else:

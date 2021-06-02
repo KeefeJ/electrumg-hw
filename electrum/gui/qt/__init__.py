@@ -114,7 +114,7 @@ class ElectrumGui(Logger):
         self.efilter = OpenFileEventFilter(self.windows)
         self.app = QElectrumApplication(sys.argv)
         self.app.installEventFilter(self.efilter)
-        self.app.setWindowIcon(read_QIcon("electrum.png"))
+        self.app.setWindowIcon(read_QIcon("electrumg.png"))
         self._cleaned_up = False
         # timer
         self.timer = QTimer(self.app)
@@ -184,9 +184,9 @@ class ElectrumGui(Logger):
 
     def tray_icon(self):
         if self.dark_icon:
-            return read_QIcon('electrum_dark_icon.png')
+            return read_QIcon('electrumg_dark_icon.png')
         else:
-            return read_QIcon('electrum_light_icon.png')
+            return read_QIcon('electrumg_light_icon.png')
 
     def toggle_tray_icon(self):
         if not self.tray:
