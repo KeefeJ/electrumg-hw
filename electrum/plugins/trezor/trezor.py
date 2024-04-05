@@ -347,7 +347,7 @@ class TrezorPlugin(HW_PluginBase):
         outputs = self.tx_outputs(tx, keystore=keystore)
         details = SignTx(lock_time=tx.locktime, version=tx.version)
         signatures, _ = client.sign_tx(self.get_coin_name(), inputs, outputs, details=details, prev_txes=prev_tx)
-        signatures = [(bh2u(x) + '01') for x in signatures]
+        signatures = [(bh2u(x) + '41') for x in signatures]
         tx.update_signatures(signatures)
 
     @runs_in_hwd_thread
