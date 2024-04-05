@@ -1,8 +1,22 @@
 {
-    "test-electrum.bitcoingold.dev": {
+    "electrumx-eu.bitcoingold.org": {
         "pruning": "-",
         "s": "50002",
-        "t": "50001",
-        "version": "1.9.2"
+        "version": "1.2"
+    },
+    "electrumx-us.bitcoingold.org": {
+        "pruning": "-",
+        "s": "50002",
+        "version": "1.2"
+    },
+    "electrumx-eu.btcgpu.org": {
+        "pruning": "-",
+        "s": "50002",
+        "version": "1.2"
+    },
+    "electrumx-us.btcgpu.org": {
+        "pruning": "-",
+        "s": "50002",
+        "version": "1.2"
     }
 }
