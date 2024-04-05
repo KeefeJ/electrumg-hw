@@ -139,6 +139,10 @@ info "Building PyInstaller."
     # sanity check bootloader is there:
     [[ -e "PyInstaller/bootloader/Windows-$PYINST_ARCH/runw.exe" ]] || fail "Could not find runw.exe in target dir!"
 ) || fail "PyInstaller build failed"
+
+info "Deleting $CACHEDIR/pyinstaller/pyinstaller.py to avoid case-insensitive name collision with PyInstaller package."
+rm $CACHEDIR/pyinstaller/pyinstaller.py || info "doesn't exist, moving on..."
+
 info "Installing PyInstaller."
 $WINE_PYTHON -m pip install --no-dependencies --no-warn-script-location ./pyinstaller
 
